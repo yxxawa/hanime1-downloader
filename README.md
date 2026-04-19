@@ -1,5 +1,6 @@
 <img width="1280" height="640" alt="hanime1DownLoad" src="https://github.com/user-attachments/assets/003d3091-2356-4a94-887e-d08b49354ca2" />
 
+## 通宵三天大改修复了下，发布版本过几天（也许是一天）发，也可以自己打包
 ## 界面
 <img width="2559" height="1524" alt="1" src="https://github.com/user-attachments/assets/a9f46eec-805b-4c34-a111-d6504eb52b5a" />
 <img width="2559" height="1527" alt="2" src="https://github.com/user-attachments/assets/49f6469d-b063-4e5e-9e3c-396d748e0721" />
