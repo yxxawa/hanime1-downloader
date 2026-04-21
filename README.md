@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎬 Hanime1 Downloader
+# Hanime1 Downloader
 
 <img src="https://github.com/user-attachments/assets/9ba96833-9610-42b0-9dbf-95114fdc3be7" width="96" alt="app icon" style="border-radius: 18px; margin: 8px 0;">
 
