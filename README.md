@@ -1,14 +1,15 @@
 <div align="center">
 
 # 🎬 Hanime1 Downloader
-<img width="1619" height="1619" alt="icon" src="https://github.com/user-attachments/assets/34b79a45-eca0-4778-808e-e22d921c596c" />
+
+<img src="https://github.com/user-attachments/assets/9ba96833-9610-42b0-9dbf-95114fdc3be7" width="96" alt="app icon" style="border-radius: 18px; margin: 8px 0;">
 
 ### 基于 WPF + .NET 9 的 Hanime1 视频下载与管理工具
 
-[![GitHub Stars](https://img.shields.io/github/stars/yxxawa/hanime1DownLoader?style=for-the-badge&logo=github&color=fbbf24)](https://github.com/yxxawa/hanime1DownLoader/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/yxxawa/hanime1DownLoader?style=for-the-badge&logo=github&color=6b7280)](https://github.com/yxxawa/hanime1DownLoader/network/members)
-[![GitHub Issues](https://img.shields.io/github/issues/yxxawa/hanime1DownLoader?style=for-the-badge&logo=github&color=ef4444)](https://github.com/yxxawa/hanime1DownLoader/issues)
-[![GitHub License](https://img.shields.io/github/license/yxxawa/hanime1DownLoader?style=for-the-badge&logo=open-source-initiative&color=3b82f6)](https://github.com/yxxawa/hanime1DownLoader/blob/main/LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/yxxawa/hanime1-downloader?style=for-the-badge&logo=github&color=fbbf24)](https://github.com/yxxawa/hanime1-downloader/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/yxxawa/hanime1-downloader?style=for-the-badge&logo=github&color=6b7280)](https://github.com/yxxawa/hanime1-downloader/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/yxxawa/hanime1-downloader?style=for-the-badge&logo=github&color=ef4444)](https://github.com/yxxawa/hanime1-downloader/issues)
+[![GitHub License](https://img.shields.io/github/license/yxxawa/hanime1-downloader?style=for-the-badge&logo=open-source-initiative&color=3b82f6)](https://github.com/yxxawa/hanime1-downloader/blob/main/LICENSE)
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D6?style=flat-square&logo=windows11&logoColor=white)](#)
 [![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=flat-square&logo=dotnet&logoColor=white)](#)
