@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12&height=180&section=header&text=Hanime1%20Downloader&fontSize=48&fontColor=fff&animation=fadeIn&fontAlignY=38&desc=WPF%20%2B%20.NET%209%20视频下载工具&descAlignY=58&descSize=16" width="100%"/>
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12&height=180&section=header&text=Hanime1%20Downloader&fontSize=48&fontColor=fff&animation=fadeIn&fontAlignY=38&desc=视频下载工具&descAlignY=58&descSize=16" width="100%"/>
 </p>
 
 <div align="center">
