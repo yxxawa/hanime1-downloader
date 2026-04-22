@@ -274,4 +274,3 @@ Hanime1Downloader.CSharp/
 **[⬆ 返回顶部](#hanime1-downloader)**
 
 </div>
-```
