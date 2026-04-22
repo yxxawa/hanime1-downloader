@@ -49,17 +49,6 @@
   </tr>
 </table>
 
----
-
-## 模拟体验
-
-> 界面交互示意，展示主要操作流程（SVG 动画，无需安装）。
-
-<p align="center">
-  <img src="./Assets/demo.svg" alt="App Demo" width="100%"/>
-</p>
-
----
 
 ## 功能特性
 
