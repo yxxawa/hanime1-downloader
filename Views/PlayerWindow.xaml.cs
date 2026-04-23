@@ -1,6 +1,7 @@
 using Hanime1Downloader.CSharp.Models;
 using Microsoft.Web.WebView2.Core;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 
@@ -126,13 +127,41 @@ public partial class PlayerWindow : Window
         }
     }
 
+    [DllImport("user32.dll")] static extern bool OpenClipboard(IntPtr hWnd);
+    [DllImport("user32.dll")] static extern bool CloseClipboard();
+    [DllImport("user32.dll")] static extern bool EmptyClipboard();
+    [DllImport("user32.dll")] static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
+    [DllImport("kernel32.dll")] static extern IntPtr GlobalAlloc(uint uFlags, UIntPtr dwBytes);
+    [DllImport("kernel32.dll")] static extern IntPtr GlobalLock(IntPtr hMem);
+    [DllImport("kernel32.dll")] static extern bool GlobalUnlock(IntPtr hMem);
+
     private void CopyLinkButton_OnClick(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrWhiteSpace(_currentVideoUrl))
-        {
             return;
-        }
 
-        Clipboard.SetText(_currentVideoUrl);
+        // retry up to 10 times in case clipboard is briefly locked
+        for (int i = 0; i < 10; i++)
+        {
+            if (OpenClipboard(IntPtr.Zero))
+            {
+                try
+                {
+                    EmptyClipboard();
+                    var bytes = System.Text.Encoding.Unicode.GetBytes(_currentVideoUrl + "\0");
+                    var hMem = GlobalAlloc(0x0042 /* GMEM_MOVEABLE|GMEM_ZEROINIT */, (UIntPtr)bytes.Length);
+                    var ptr = GlobalLock(hMem);
+                    Marshal.Copy(bytes, 0, ptr, bytes.Length);
+                    GlobalUnlock(hMem);
+                    SetClipboardData(13 /* CF_UNICODETEXT */, hMem);
+                }
+                finally
+                {
+                    CloseClipboard();
+                }
+                return;
+            }
+            System.Threading.Thread.Sleep(10);
+        }
     }
 }

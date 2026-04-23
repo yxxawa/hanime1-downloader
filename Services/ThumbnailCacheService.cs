@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Windows.Media.Imaging;
@@ -20,17 +19,13 @@ public static class ThumbnailCacheService
     public static Task<BitmapSource?> GetAsync(string url, int decodePixelWidth)
     {
         if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out _))
-        {
             return Task.FromResult<BitmapSource?>(null);
-        }
 
         if (Cache.Count >= MaxCacheSize)
         {
             var keysToRemove = Cache.Keys.Take(MaxCacheSize / 2).ToList();
-            foreach (var keyToRemove in keysToRemove)
-            {
-                Cache.TryRemove(keyToRemove, out _);
-            }
+            foreach (var k in keysToRemove)
+                Cache.TryRemove(k, out _);
         }
 
         var key = $"{decodePixelWidth}|{url}";
@@ -44,7 +39,7 @@ public static class ThumbnailCacheService
         try
         {
             var bytes = await HttpClient.GetByteArrayAsync(url);
-            using var stream = new MemoryStream(bytes);
+            using var stream = new System.IO.MemoryStream(bytes);
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
@@ -55,13 +50,7 @@ public static class ThumbnailCacheService
             bitmap.Freeze();
             return bitmap;
         }
-        catch
-        {
-            return null;
-        }
-        finally
-        {
-            DownloadGate.Release();
-        }
+        catch { return null; }
+        finally { DownloadGate.Release(); }
     }
 }

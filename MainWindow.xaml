@@ -623,17 +623,6 @@
                                                     BorderBrush="{DynamicResource ThemeBorderSubtleBrush}"
                                                     BorderThickness="0,0,0,1">
                                                 <DockPanel LastChildFill="True">
-                                                    <Border DockPanel.Dock="Left"
-                                                            Width="64"
-                                                            Height="36"
-                                                            Margin="0,0,6,0"
-                                                            Background="{DynamicResource ThemeCoverPlaceholderBrush}"
-                                                            BorderBrush="{DynamicResource ThemeCoverPlaceholderBorderBrush}"
-                                                            BorderThickness="1"
-                                                            CornerRadius="2"
-                                                            Visibility="{Binding DataContext.ShowListCoversVisibility, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                        <Image Source="{Binding CoverImage}" Stretch="UniformToFill"/>
-                                                    </Border>
                                                     <TextBlock Text="{Binding Title}"
                                                                VerticalAlignment="Center"
                                                                Foreground="{DynamicResource ThemeTextBrush}"

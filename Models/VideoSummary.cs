@@ -11,7 +11,7 @@ public sealed class VideoSummary : INotifyPropertyChanged
     public required string VideoId { get; init; }
     public required string Title { get; init; }
     public required string Url { get; init; }
-    public string CoverUrl { get; init; } = string.Empty;
+    public string CoverUrl { get; set; } = string.Empty;
 
     public ImageSource? CoverImage
     {

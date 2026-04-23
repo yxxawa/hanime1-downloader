@@ -1279,7 +1279,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        if (!_favoriteFolders.Remove(currentFolder))
+        if (!_favoriteFolders.TryGetValue(currentFolder, out var folderItems) || !_favoriteFolders.Remove(currentFolder))
         {
             StatusText.Text = $"未找到收藏夹: {currentFolder}";
             return;
@@ -1412,6 +1412,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             var importedFolders = ParseFavoriteImport(File.ReadAllText(dialog.FileName));
             var importedCount = 0;
+            var addedVideos = new List<VideoSummary>();
             foreach (var (folderName, videos) in importedFolders)
             {
                 var targetFolderName = ResolveImportFolderName(folderName);
@@ -1431,6 +1432,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 foreach (var video in videos.Where(video => existingIds.Add(video.VideoId)))
                 {
                     existingFolder.Add(video);
+                    addedVideos.Add(video);
                     importedCount++;
                 }
             }
@@ -1446,6 +1448,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             RefreshFavoriteFolders();
             RefreshFavoritesView();
             StatusText.Text = $"导入完成，共新增 {importedCount} 条收藏。";
+            FetchMissingCovers(addedVideos);
         }
         catch (Exception ex)
         {
@@ -1990,6 +1993,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
 
             ApplyVideoDetails(details);
+            if (!string.IsNullOrWhiteSpace(details.CoverUrl))
+            {
+                var matched = _favoriteFolders.Values.SelectMany(f => f)
+                    .FirstOrDefault(s => string.Equals(s.VideoId, details.VideoId, StringComparison.OrdinalIgnoreCase));
+                if (matched is not null && string.IsNullOrWhiteSpace(matched.CoverUrl))
+                {
+                    matched.CoverUrl = details.CoverUrl;
+                    _ = PrimeThumbnailAsync(matched);
+                }
+            }
             StatusText.Text = $"已读取 {details.VideoId} 的详情。";
             LogInfo("details", $"详情读取完成: {details.VideoId}");
         }
@@ -2816,9 +2829,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 continue;
             }
 
-            var videoId = ReadJsonString(item, "video_id", "videoId");
-            var title = ReadJsonString(item, "title");
-            var url = ReadJsonString(item, "url");
+            var videoId = ReadJsonString(item, "video_id", "videoId", "VideoId");
+            var title = ReadJsonString(item, "title", "Title");
+            var url = ReadJsonString(item, "url", "Url");
             if (string.IsNullOrWhiteSpace(videoId) || string.IsNullOrWhiteSpace(title))
             {
                 continue;
@@ -2828,7 +2841,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             {
                 VideoId = videoId,
                 Title = SimplifiedChineseConverter.ToSimplified(title),
-                Url = string.IsNullOrWhiteSpace(url) ? $"https://{_settings.SiteHost}/watch?v={videoId}" : url
+                Url = string.IsNullOrWhiteSpace(url) ? $"https://{_settings.SiteHost}/watch?v={videoId}" : url,
+                CoverUrl = ReadJsonString(item, "cover_url", "coverUrl", "CoverUrl")
             });
         }
 
@@ -2855,7 +2869,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             {
                 VideoId = video.VideoId,
                 Title = video.Title,
-                Url = video.Url
+                Url = video.Url,
+                CoverUrl = video.CoverUrl
             })
             .ToList();
     }
@@ -2864,6 +2879,35 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         var dialog = new InputDialog(title, prompt, defaultValue) { Owner = this };
         return dialog.ShowDialog() == true ? dialog.InputText.Trim() : null;
+    }
+
+    private void FetchMissingCovers(IEnumerable<VideoSummary> videos)
+    {
+        if (_apiClient is null) return;
+        var missing = videos.Where(v => string.IsNullOrWhiteSpace(v.CoverUrl)).ToList();
+        if (missing.Count == 0) return;
+        _ = FetchMissingCoversAsync(missing);
+    }
+
+    private async Task FetchMissingCoversAsync(List<VideoSummary> videos)
+    {
+        using var gate = new SemaphoreSlim(2, 2);
+        await Task.WhenAll(videos.Select(async summary =>
+        {
+            await gate.WaitAsync();
+            try
+            {
+                var details = await GetOrLoadVideoDetailsAsync(summary.VideoId, VideoDetailsLoadOptions.Cover);
+                if (string.IsNullOrWhiteSpace(details?.CoverUrl)) return;
+                summary.CoverUrl = details.CoverUrl;
+                _ = PrimeThumbnailAsync(summary);
+            }
+            finally
+            {
+                gate.Release();
+            }
+        }));
+        TrySaveFavorites("favorites", "保存收藏夹失败");
     }
 
     private string? ResolveImportFolderName(string folderName)
@@ -2932,7 +2976,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
 
         FavoritesList.ItemsSource = favorites;
-        PrimeThumbnails(favorites);
         _favoritesView = CollectionViewSource.GetDefaultView(FavoritesList.ItemsSource);
         if (_favoritesView is not null)
         {
@@ -3058,6 +3101,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             _ = PrimeThumbnailAsync(item);
         }
+    }
+
+    private void FavoritesList_OnScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
     }
 
     private void UpdatePageNavigationUi()
@@ -3239,6 +3286,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             {
                 StatusText.Text = "下载会话尚未初始化。";
                 return false;
+            }
+
+            // skip if already fully downloaded (no .tmp means not a resume)
+            if (File.Exists(targetPath) && !File.Exists(targetPath + ".tmp"))
+            {
+                if (queueItem is not null)
+                {
+                    SetQueueItemVisualState(queueItem, DownloadQueueState.Completed, "完成", "已存在", showProgress: true, progressValue: 100);
+                }
+                StatusText.Text = $"文件已存在，跳过: {targetPath}";
+                LogInfo("download", $"文件已存在，跳过: {targetPath}");
+                return true;
             }
 
             if (queueItem is not null)
@@ -3747,6 +3806,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         try
         {
             var maxConcurrentDownloads = Math.Clamp(_settings.MaxConcurrentDownloads, 1, 3);
+            var downloadGate = new SemaphoreSlim(maxConcurrentDownloads, maxConcurrentDownloads);
             var pendingItems = queueItems.ToList();
             var runningTasks = new Dictionary<DownloadQueueItem, Task<QueueItemProcessResult>>();
 
@@ -3770,7 +3830,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     {
                         pendingItems.Remove(item);
                         DownloadQueueList.SelectedItem = item;
-                        runningTasks[item] = ProcessQueueItemAsync(item, operationId);
+                        runningTasks[item] = ProcessQueueItemAsync(item, operationId, downloadGate);
                     }
                 }
 
@@ -3785,7 +3845,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     }
 
                     DownloadQueueList.SelectedItem = item;
-                    runningTasks[item] = ProcessQueueItemAsync(item, operationId);
+                    runningTasks[item] = ProcessQueueItemAsync(item, operationId, downloadGate);
                 }
 
                 if (_isPauseRequested || (pendingItems.Count == 0 && runningTasks.Count == 0))
@@ -3878,7 +3938,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private async Task<QueueItemProcessResult> ProcessQueueItemAsync(DownloadQueueItem item, string operationId)
+    private async Task<QueueItemProcessResult> ProcessQueueItemAsync(DownloadQueueItem item, string operationId, SemaphoreSlim downloadGate)
     {
         _currentQueueDownloadItem = item;
         item.IsDownloading = true;
@@ -3932,6 +3992,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 return QueueItemProcessResult.Error();
             }
 
+            await downloadGate.WaitAsync(queueCancellationToken);
+            try
+            {
             SetQueueItemVisualState(item, DownloadQueueState.Downloading, "下载", "下载中", showProgress: true, progressValue: 0);
             UpdateQueueRuntimeSummaryUi();
             LogInfo("queue", $"[{operationId}] 开始下载队列项: videoId={item.VideoId}, quality={item.Quality}, type={item.Type}");
@@ -3957,6 +4020,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
 
             return QueueItemProcessResult.Completed();
+            }
+            finally
+            {
+                downloadGate.Release();
+            }
         }
         finally
         {
@@ -4567,24 +4635,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return candidatePath;
         }
 
-        var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-        var extension = Path.GetExtension(fileName);
-        var index = 1;
-        while (true)
-        {
-            var nextPath = Path.Combine(directory, $"{fileNameWithoutExtension}_{index}{extension}");
-            if (File.Exists(nextPath + ".tmp"))
-            {
-                return nextPath;
-            }
-
-            if (!File.Exists(nextPath))
-            {
-                return nextPath;
-            }
-
-            index++;
-        }
+        // file exists and is complete — return it so caller can skip
+        return candidatePath;
     }
 
     private string EnsureDownloadDirectory()
@@ -4625,6 +4677,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public required string VideoId { get; init; }
         public required string Title { get; init; }
         public required string Url { get; init; }
+        public string CoverUrl { get; init; } = string.Empty;
     }
 
     private sealed class DownloadQueueRecord
